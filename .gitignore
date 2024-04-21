@@ -396,3 +396,11 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# CMake Build Directoriries
+/out
+bin/
+build/
+/.vs
+.idea/
+CMakeSettings.json

@@ -1,0 +1,50 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34723.18
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Engine", "Engine", "{67D5F032-D8D9-4FA1-ADB6-9A0C1FBD123B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "WindowManager", "WindowManager", "{3AE0ADB3-554F-4AFE-B55B-1313BA6037AF}"
+	ProjectSection(SolutionItems) = preProject
+		src\WindowManager\WindowManager.cpp = src\WindowManager\WindowManager.cpp
+		src\WindowManager\WindowManager.hpp = src\WindowManager\WindowManager.hpp
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Skeleton", "Skeleton", "{CD3BDFAB-84D9-4E36-BD3D-9106CF1F50E4}"
+	ProjectSection(SolutionItems) = preProject
+		src\Skeleton\main.cpp = src\Skeleton\main.cpp
+	EndProjectSection
+EndProject
+Project("{911E67C6-3D85-4FCE-B560-20A9C3E3FF48}") = "MadelineCAD", "out\MadelineCAD.exe", "{873D39AA-FFCD-493C-841A-36B70A766055}"
+	ProjectSection(DebuggerProjectSystem) = preProject
+		PortSupplier = 00000000-0000-0000-0000-000000000000
+		Executable = C:\Users\ander\source\repos\MadelineCAD\out\MadelineCAD.exe
+		RemoteMachine = WALKING_HAZARD
+		StartingDirectory = C:\Users\ander\source\repos\MadelineCAD\out
+		Environment = Default
+		LaunchingEngine = 00000000-0000-0000-0000-000000000000
+		UseLegacyDebugEngines = No
+		LaunchSQLEngine = No
+		AttachLaunchAction = No
+		IORedirection = Auto
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{873D39AA-FFCD-493C-841A-36B70A766055}.Release|x86.ActiveCfg = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{3AE0ADB3-554F-4AFE-B55B-1313BA6037AF} = {67D5F032-D8D9-4FA1-ADB6-9A0C1FBD123B}
+		{873D39AA-FFCD-493C-841A-36B70A766055} = {CD3BDFAB-84D9-4E36-BD3D-9106CF1F50E4}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {FB32C8D2-B6AA-4D8F-8B43-D8840E7AF5AF}
+	EndGlobalSection
+EndGlobal
