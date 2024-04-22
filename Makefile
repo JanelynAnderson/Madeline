@@ -1,5 +1,9 @@
 CXX = g++
-CXXFLAGS = -std=c++11 -Wall -I"C:/Program Files/boost/boost_1_82_0"
+SRCDIR = src
+BUILDDIR = build
+subdirs = $(wildcard include/**)
+CXXFLAGS = -std=c++20 -Wall -I"C:/Program Files/boost/boost_1_82_0" -I"C:/Users/ander/source/repos/MadelineCAD"
+CXXFLAGS += $(foreach dir,$(subdirs),-I$(dir))
 LDFLAGS = -L"C:/Program Files/boost/boost_1_82_0/stage/lib"
 LIBS = \
     -llibboost_atomic-vc143-mt-gd-x64-1_82 \
@@ -43,17 +47,18 @@ LIBS = \
     -llibboost_wave-vc143-mt-gd-x64-1_82 \
     -llibboost_wserialization-vc143-mt-gd-x64-1_82
 
-SRCS = src/Skeleton/main.cpp
+SRCS := $(wildcard src/**/*.cpp)
 OBJS = $(SRCS:.cpp=.o)
 EXECUTABLE = MadelineCAD.exe
 
-all: $(EXECUTABLE)
+all: $(BUILDDIR)/$(EXECUTABLE)
 
-$(EXECUTABLE): $(OBJS)
-				$(CXX) $(LDFLAGS) $(OBJS) -o $@ $(LIBS)
+$(BUILDDIR)/$(EXECUTABLE): $(OBJS)
+				$(CXX) $(CXXFLAGS) $(LDFLAGS) $(foreach obj,$(OBJS), build/$(notdir $(obj))) -o $@ $(LIBS)
 
 .cpp.o:
-				$(CXX) $(CXXFLAGS) -c $< -o $@
+				$(CXX) $(CXXFLAGS) -c $< -o $(BUILDDIR)/$(notdir $@)
 
 clean:
-				rm -f $(OBJS) $(EXECUTABLE)
+				rd /s /q build
+				mkdir build
