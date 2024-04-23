@@ -1,5 +1,5 @@
 cd "%USERPROFILE%\source\repos\MadelineCAD"
 make clean
 make
-:: pause
+pause
 start "Console" "build/MadelineCAD.exe"

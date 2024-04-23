@@ -3,6 +3,7 @@
 #include <boost/algorithm/algorithm.hpp>
 #include <iostream>
 #include <limits>
+#include <vulkan/vulkan.h>
 
 int main()
 {

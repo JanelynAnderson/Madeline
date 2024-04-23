@@ -2,10 +2,23 @@ CXX = g++
 SRCDIR = src
 BUILDDIR = build
 subdirs = $(wildcard include/**)
-CXXFLAGS = -std=c++20 -Wall -I"C:/Program Files/boost/boost_1_82_0" -I"C:/Users/ander/source/repos/MadelineCAD"
+CXXFLAGS = -std=c++20 \
+				-Wall \
+				-Wextra \
+				-I"C:/Program Files/boost/boost_1_82_0" \
+				-I"C:/Users/ander/source/repos/MadelineCAD" \
+				-I"C:/VulkanSDK/1.3.280.0/Include"
+
+
 CXXFLAGS += $(foreach dir,$(subdirs),-I$(dir))
-LDFLAGS = -L"C:/Program Files/boost/boost_1_82_0/stage/lib"
-LIBS = \
+
+
+LDFLAGS = \
+				-L"C:/Program Files/boost/boost_1_82_0/stage/lib" \
+				-L"C:/VulkanSDK/1.3.280.0/Lib"
+
+
+BOOST_LIBS = \
     -llibboost_atomic-vc143-mt-gd-x64-1_82 \
     -llibboost_chrono-vc143-mt-gd-x64-1_82 \
     -llibboost_container-vc143-mt-gd-x64-1_82 \
@@ -46,6 +59,11 @@ LIBS = \
     -llibboost_url-vc143-mt-gd-x64-1_82 \
     -llibboost_wave-vc143-mt-gd-x64-1_82 \
     -llibboost_wserialization-vc143-mt-gd-x64-1_82
+
+VULKAN_LIBS = \
+				-lvulkan-1
+
+LIBS = $(BOOST_LIBS) $(VULKAN_LIBS)
 
 SRCS := $(wildcard src/**/*.cpp)
 OBJS = $(SRCS:.cpp=.o)
