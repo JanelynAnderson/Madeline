@@ -7,7 +7,8 @@ CXXFLAGS = -std=c++20 \
 				-Wextra \
 				-I"C:/Program Files/boost/boost_1_82_0" \
 				-I"C:/Users/ander/source/repos/MadelineCAD" \
-				-I"C:/VulkanSDK/1.3.280.0/Include"
+				-I"C:/VulkanSDK/1.3.280.0/Include" \
+				-I"C:/glfw-3.4/include"
 
 
 CXXFLAGS += $(foreach dir,$(subdirs),-I$(dir))

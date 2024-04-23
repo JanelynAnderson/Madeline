@@ -4,6 +4,7 @@
 #include <iostream>
 #include <limits>
 #include <vulkan/vulkan.h>
+#include <GLFW/glfw3.h>
 
 int main()
 {
