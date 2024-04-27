@@ -1,15 +1,8 @@
-#include "include/WindowManager/WindowManager.hpp"
-
-#include <boost/algorithm/algorithm.hpp>
 #include <iostream>
 #include <limits>
-#include <vulkan/vulkan.h>
-#include <GLFW/glfw3.h>
-
-int main()
-{
-	std::cout << "OMG CUTE GIRLS!! I LOVE GIRLS" << std::endl;
-	WindowManager m_WindowManger;
+int main(int, char* [])
+{	
+	std::cout << "test";
 	std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 	return 0;
 }

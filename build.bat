@@ -1,5 +1,7 @@
-cd "%USERPROFILE%\source\repos\MadelineCAD"
-make clean
-make
+cd "C:/Users/ander/source/repos/MadelineCAD
+Cmake -S . -B out/build -G "MinGW Makefiles"
 ::pause
-start "Console" "build/MadelineCAD.exe"
+cd "out/build"
+make
+
+start MadelineCAD.exe

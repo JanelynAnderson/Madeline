@@ -2,5 +2,5 @@
 
 WindowManager::WindowManager()
 {
-	std::cout << "test" << std::endl;
+	//init Window
 }
