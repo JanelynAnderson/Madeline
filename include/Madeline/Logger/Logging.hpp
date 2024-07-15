@@ -13,18 +13,20 @@
 #include <boost/log/sinks.hpp>
 #include <boost/log/sources/logger.hpp>
 
-namespace MCAD
+#include <windows.h>
+#include <iostream>
+
+
+namespace Madeline
 {
-	namespace Logger
+	typedef boost::log::sinks::synchronous_sink< boost::log::sinks::text_file_backend > file_sink;
+	class Logging
 	{
-		typedef boost::log::sinks::synchronous_sink< boost::log::sinks::text_file_backend > file_sink;
-		class Logging
-		{
-		public:
-			void init_logging();
-			void init_file_collecting(boost::shared_ptr< file_sink > sink);
-			void write_header(boost::log::sinks::text_file_backend::stream_type& file);
-			void write_footer(boost::log::sinks::text_file_backend::stream_type& file);
-		};
-	}
-} 
+	public:
+		Logging();
+		void init_logging();
+		void init_file_collecting(boost::shared_ptr< file_sink > sink);
+		void write_header(boost::log::sinks::text_file_backend::stream_type& file);
+		void write_footer(boost::log::sinks::text_file_backend::stream_type& file);
+	};
+}

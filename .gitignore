@@ -55,3 +55,8 @@ out/
 # git modules
 
 external/
+
+packages/
+x64/
+Madeline/x64/
+Madeline/Debug/

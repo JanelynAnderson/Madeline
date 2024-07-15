@@ -4,7 +4,7 @@ project(Madeline)
 
 set(SOURCES
 				src/Skeleton/main.cpp
-				src/MCAD/Logger/Logging.cpp
+				src/Madeline/Logger/Logging.cpp
 )
 
 set(Boost_INCLUDE_DIR "C:/Program Files/boost/boost_1_85_0")

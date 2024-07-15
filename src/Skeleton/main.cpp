@@ -1,61 +1,54 @@
-#include <iostream>
-#include <limits>
-#include <exception>
-#include <GLFW/glfw3.h>
-#include "include/Madeline/Logger/Logging.hpp"
-#include <windows.h>
+#include "include/Skeleton/Skeleton.hpp"
 
 int main( int, char* [] )
 {
-	HANDLE hConsole;
-	hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-
-	MCAD::Logger::Logging Logsystem;
-	// initalize logging
-	std::cout << "Log System Booting..." << std::endl;
-	std::cout << "Log System ";
-	try
-	{
-		Logsystem.init_logging();
-		boost::log::core::get()->add_global_attribute("TimeStamp", boost::log::attributes::local_clock());
-		boost::log::core::get()->add_global_attribute("RecordID", boost::log::attributes::counter< unsigned int >());
-		
-		SetConsoleTextAttribute(hConsole, 10);
-		std::cout << "ONLINE";
-		SetConsoleTextAttribute(hConsole, 7);
-	}
-	catch(std::exception& e)
-	{
-		SetConsoleTextAttribute(hConsole, 4);
-		std::cout << "FAILED";
-		SetConsoleTextAttribute(hConsole, 7);
-		std::cerr << "failed to initalize log system" << std::endl;
-	}
+	Madeline::Logging *Logsystem = new Madeline::Logging;
+	delete Logsystem;
 	boost::log::sources::logger lg;
-	BOOST_LOG(lg) << "Test Log";
+
+
+
+	std::unique_ptr<Madeline::WindowManager> WinMngr(new Madeline::WindowManager);
+	WinMngr->initalizeGLFW();
+
+	//X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X
+	// X X X X X X X X X Start Create Startup Window(s)  X X X X X X X X X X X
+	//X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X
 	
-	GLFWwindow *window;
+	Madeline::windowConfig Window1;
+	Window1.HEIGHT = 700;
+	Window1.WIDTH = 700;
+	Window1.NAME = "Test Window UwU";
+	WinMngr->addWindow(Window1);
 
-	if ( !glfwInit() )
+	/*
+	Madeline::windowConfig Window2;
+	Window2.HEIGHT = 600;
+	Window2.WIDTH = 600;
+	Window2.NAME = "UwU 2 electric boogaloo";
+	WinMngr->addWindow( Window2 );
+	*/
+	
+	//X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X
+	// X X X X X X X X X X End Create Startup Window(s)  X X X X X X X X X X X
+	//X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X
+	
+	WinMngr->initalizeVulkan();
+
+	
+	
+	while (WinMngr->areActiveWindows())
 	{
-		fprintf( stderr, "Failed to initalize GLFW\n" );
-		exit( EXIT_FAILURE );
-	}
+		WinMngr->allMainLoops();
 
-	window = glfwCreateWindow( 300, 300, "TEST WINDOW", NULL, NULL );
-	if (!window)
-	{
-		fprintf( stderr, "Failed to open GLFW window\n" );
-		glfwTerminate();
-		exit( EXIT_FAILURE );
+		WinMngr->checkWindowsForCloseRequest();
 	}
+	WinMngr->cleanup();
+	WinMngr.release();
 
-	while ( !glfwWindowShouldClose( window ) )
-	{
-		glfwSwapBuffers( window );
-		glfwPollEvents();
-	}
-
-	glfwTerminate();
-	return 0;
+	bool deconstructed = true;
+	
+	deconstructed = deconstructed ? WinMngr == nullptr : false;
+	
+	return !deconstructed;
 }
