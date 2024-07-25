@@ -1,18 +1,7 @@
 #pragma once
-
-#define GLFW_INCLUDE_VULKAN
-#include <windows.h>
-#include <GLFW/glfw3.h>
-#include <stdint.h>
-#include <vector>
 #include "include/Madeline/WindowManager/WindowStructs.hpp"
 #include "include/Madeline/WindowManager/Window.hpp"
-#include <iostream>
-#include <exception>
-
-#include <iostream>
-#include <map>
-#include <optional>
+#include "include/Skeleton/Skeleton.hpp"
 
 namespace Madeline
 {
@@ -20,7 +9,9 @@ namespace Madeline
 	{
 	public:
 		
-		void initalizeVulkan();
+		void initalizeVulkanAndDebug();
+
+		void finalizeInitalization();
 
 		void cleanup();
 
@@ -76,13 +67,20 @@ namespace Madeline
 		QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
 		
 		void createLogicalDevice();
-		//void createSurface();
+		void createAllSurfaces();
+		bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+		SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+		VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+		VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+		void createSwapChain();
 	private:
+		std::string boolToString(bool value) {return value ? "true" : "false";}
 		std::vector<Madeline::Window> windowStack;
-		
-		
 		const std::vector<const char*> validationLayers = {
 			"VK_LAYER_KHRONOS_validation"
+		};
+		const std::vector<const char*> deviceExtensions = {
+			VK_KHR_SWAPCHAIN_EXTENSION_NAME
 		};
 		#ifdef NDEBUG
 			const bool enableValidationLayers = false;
@@ -94,13 +92,15 @@ namespace Madeline
 		VkDebugUtilsMessengerEXT debugMessenger { VK_NULL_HANDLE };
 		VkDevice device							{ VK_NULL_HANDLE };
 		VkQueue graphicsQueue					{ VK_NULL_HANDLE };
+		VkQueue presentQueue					{ VK_NULL_HANDLE };
 		VulkanWindowHandles windowHandles
 		{
-			instance,
-			physicalDevice,
-			debugMessenger,
-			device,
-			graphicsQueue
+			&instance,
+			&physicalDevice,
+			&debugMessenger,
+			&device,
+			&graphicsQueue,
+			&presentQueue
 		};
 	};
 }

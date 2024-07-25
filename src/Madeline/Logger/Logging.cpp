@@ -23,6 +23,7 @@ namespace Madeline
 			std::cout << "FAILED" << std::endl;
 			SetConsoleTextAttribute(hConsole, 7);
 			std::cerr << "failed to initalize log system" << std::endl;
+			std::cerr << e.what() << std::endl;
 		}
 	}
 	void Logging::init_logging()

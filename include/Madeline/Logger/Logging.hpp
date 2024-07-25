@@ -13,8 +13,8 @@
 #include <boost/log/sinks.hpp>
 #include <boost/log/sources/logger.hpp>
 
-#include <windows.h>
-#include <iostream>
+#include "include/Skeleton/Skeleton.hpp"
+
 
 
 namespace Madeline

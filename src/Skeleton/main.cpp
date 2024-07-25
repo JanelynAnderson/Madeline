@@ -1,4 +1,7 @@
 #include "include/Skeleton/Skeleton.hpp"
+#include "include/Madeline/Logger/Logging.hpp"
+#include "include/Madeline/WindowManager/WindowManager.hpp"
+
 
 int main( int, char* [] )
 {
@@ -9,7 +12,7 @@ int main( int, char* [] )
 
 
 	std::unique_ptr<Madeline::WindowManager> WinMngr(new Madeline::WindowManager);
-	WinMngr->initalizeGLFW();
+	WinMngr->initalizeVulkanAndDebug();
 
 	//X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X
 	// X X X X X X X X X Start Create Startup Window(s)  X X X X X X X X X X X
@@ -21,19 +24,19 @@ int main( int, char* [] )
 	Window1.NAME = "Test Window UwU";
 	WinMngr->addWindow(Window1);
 
-	/*
+	//*
 	Madeline::windowConfig Window2;
 	Window2.HEIGHT = 600;
 	Window2.WIDTH = 600;
 	Window2.NAME = "UwU 2 electric boogaloo";
 	WinMngr->addWindow( Window2 );
-	*/
+	//*/
 	
 	//X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X
 	// X X X X X X X X X X End Create Startup Window(s)  X X X X X X X X X X X
 	//X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X
 	
-	WinMngr->initalizeVulkan();
+	WinMngr->finalizeInitalization();
 
 	
 	
