@@ -15,6 +15,7 @@ namespace Madeline
 		pickPhysicalDevice();
 		createLogicalDevice();
 		createSwapChain();
+		createImageViews();
 	}
 
 	void WindowManager::cleanup()
@@ -59,23 +60,11 @@ namespace Madeline
 	
 	void WindowManager::checkWindowsForCloseRequest()
 	{
-		Window* indexedWindow = nullptr;
-		for ( uint8_t i= static_cast<uint8_t>(windowStack.size()); i > 0; i-- )
+		auto toBeDeletedStartItorator = std::stable_partition(windowStack.begin(), windowStack.end(), [](Window window){return !window.shouldWindowClose();});
+		if (toBeDeletedStartItorator != windowStack.end())
 		{
-			try
-			{
-				indexedWindow = &windowStack.at( i - 1 );
-				if (indexedWindow->shouldWindowClose())
-				{
-					
-					indexedWindow->cleanupWindow();
-					windowStack.erase(windowStack.begin() + i - 1);
-				}
-			}
-			catch (std::exception e)
-			{
-				std::cerr << "out of bounds in WindowManager" << std::endl;
-			}
+			std::for_each(toBeDeletedStartItorator, windowStack.end(), [](Window window) {window.cleanupWindow(); });
+			windowStack.erase(toBeDeletedStartItorator, windowStack.end());
 		}
 	}
 	
@@ -144,7 +133,6 @@ namespace Madeline
 		{
 			VkPhysicalDeviceProperties deviceProperties;
 			vkGetPhysicalDeviceProperties(device, &deviceProperties);
-			std::cout << "Device Name: " << deviceProperties.deviceName << std::endl;
 			if (isDeviceSuitable(device) && std::strcmp(deviceProperties.deviceName, "NVIDIA GeForce RTX 4070 Laptop GPU") == 0)
 			{
 				physicalDevice = device;
@@ -168,15 +156,21 @@ namespace Madeline
 		bool swapChainAdequatePresent = false;
 		if (extentionsSupported)
 		{
-			SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
+			SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device, windowStack.at(0).getSurface());
 			swapChainAdequateFormat = !swapChainSupport.format.empty();
 			swapChainAdequatePresent = !swapChainSupport.presentModes.empty();
 		}
-		std::cout << "GPU checks:" << "\n\tQueue Familys Supported: " << boolToString(indices.isComplete())
-								   << "\n\tExtensions Supported: " << boolToString(extentionsSupported)
-								   << "\n\tSwap Chain Aqequate Format: " << boolToString(swapChainAdequateFormat)
-								   << "\n\tSwap Chain Aqequate Present: " << boolToString(swapChainAdequatePresent)
-								   << std::endl << std::endl;
+		#if !NDEBUG
+		VkPhysicalDeviceProperties deviceProperties;
+		vkGetPhysicalDeviceProperties(device, &deviceProperties);
+		std::cout << "Device Name: " << deviceProperties.deviceName
+				  << "\nGPU checks:" 
+				  << "\n\tQueue Familys Supported: " << boolToString(indices.isComplete())
+				  << "\n\tExtensions Supported: " << boolToString(extentionsSupported)
+				  << "\n\tSwap Chain Aqequate Format: " << boolToString(swapChainAdequateFormat)
+				  << "\n\tSwap Chain Aqequate Present: " << boolToString(swapChainAdequatePresent)
+				  << std::endl << std::endl;
+		#endif
 		return indices.isComplete() && extentionsSupported && swapChainAdequateFormat && swapChainAdequatePresent;
 	}
 
@@ -410,28 +404,28 @@ namespace Madeline
 		return requiredExtensions.empty();
 	}
 	
-	SwapChainSupportDetails WindowManager::querySwapChainSupport(VkPhysicalDevice device)
+	SwapChainSupportDetails WindowManager::querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface)
 	{
 		SwapChainSupportDetails details;
 
-		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, windowStack.at(0).getSurface(), &details.capabilities);
+		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
 
 		uint32_t formatCount;
-		vkGetPhysicalDeviceSurfaceFormatsKHR(device, windowStack.at(0).getSurface(), &formatCount, nullptr);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
 		
 		if (formatCount != 0)
 		{
 			details.format.resize(formatCount);
-			vkGetPhysicalDeviceSurfaceFormatsKHR(device, windowStack.at(0).getSurface(), &formatCount, details.format.data());
+			vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.format.data());
 		}
 
 		uint32_t presentModeCount;
-		vkGetPhysicalDeviceSurfacePresentModesKHR(device, windowStack.at(0).getSurface(), &presentModeCount, details.presentModes.data());
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
 		
 		if (presentModeCount != 0)
 		{
 			details.presentModes.resize(presentModeCount);
-			vkGetPhysicalDeviceSurfacePresentModesKHR(device, windowStack.at(0).getSurface(), &presentModeCount, details.presentModes.data());
+			vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
 		}
 		return details;
 	}
@@ -463,22 +457,10 @@ namespace Madeline
 
 	void WindowManager::createSwapChain()
 	{
-		SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
-
-		VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.format);
-		VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
 		
-		uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-		if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
-		{
-			imageCount = swapChainSupport.capabilities.maxImageCount;
-		}
 		//create generic createInfo
 		VkSwapchainCreateInfoKHR createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		createInfo.minImageCount = imageCount;
-		createInfo.imageFormat = surfaceFormat.format;
-		createInfo.imageColorSpace = surfaceFormat.colorSpace;
 		createInfo.imageArrayLayers = 1;
 		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
@@ -497,13 +479,29 @@ namespace Madeline
 			createInfo.queueFamilyIndexCount = 0;
 			createInfo.pQueueFamilyIndices = nullptr;
 		}
-		createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
 		createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-		createInfo.presentMode = presentMode;
 		createInfo.clipped = VK_TRUE;
 		createInfo.oldSwapchain = nullptr;
 		for (auto& window : windowStack)
 		{
+			SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice, window.getSurface());
+
+			VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.format);
+			VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
+
+			uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+			if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
+			{
+				imageCount = swapChainSupport.capabilities.maxImageCount;
+			}
+
+			createInfo.minImageCount = imageCount;
+			createInfo.imageFormat = surfaceFormat.format;
+			createInfo.imageColorSpace = surfaceFormat.colorSpace;
+			createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+			createInfo.presentMode = presentMode;
+
+
 			VkExtent2D extent = window.chooseSwapExtent(swapChainSupport.capabilities);
 
 			createInfo.surface = window.getSurface();
@@ -513,6 +511,20 @@ namespace Madeline
 			{
 				throw std::runtime_error("failed to create swap chain!");
 			}
+
+			vkGetSwapchainImagesKHR(device, *window.getSwapchain(), &imageCount, nullptr);
+			window.getSwapChainImages()->resize(imageCount);
+			vkGetSwapchainImagesKHR(device, *window.getSwapchain(), &imageCount, window.getSwapChainImages()->data());
+			window.setSwapChainImageFormat(surfaceFormat.format);
+			window.setSwapChainImageExtent(extent);
+		}
+	}
+	
+	void WindowManager::createImageViews()
+	{
+		for (auto& window : windowStack)
+		{
+			window.createImageViews();
 		}
 	}
 }

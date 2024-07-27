@@ -69,12 +69,13 @@ namespace Madeline
 		void createLogicalDevice();
 		void createAllSurfaces();
 		bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-		SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+		SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
 		VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 		VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 		void createSwapChain();
+		void createImageViews();
 	private:
-		std::string boolToString(bool value) {return value ? "true" : "false";}
+		std::string boolToString(bool value) {return value ? "TRUE" : "FALSE";}
 		std::vector<Madeline::Window> windowStack;
 		const std::vector<const char*> validationLayers = {
 			"VK_LAYER_KHRONOS_validation"
