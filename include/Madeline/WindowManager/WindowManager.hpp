@@ -5,11 +5,12 @@
 
 namespace Madeline
 {
+	using pWindowMemberFunction = void (Window::*)();
 	class WindowManager
 	{
 	public:
 		
-		void initalizeVulkanAndDebug();
+		void initalize_GLFW_Vulkan_Debug();
 
 		void finalizeInitalization();
 
@@ -67,13 +68,8 @@ namespace Madeline
 		QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
 		
 		void createLogicalDevice();
-		void createAllSurfaces();
 		bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-		SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
-		VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-		VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-		void createSwapChain();
-		void createImageViews();
+		void applyFunctionToAllWindows(pWindowMemberFunction func);
 	private:
 		std::string boolToString(bool value) {return value ? "TRUE" : "FALSE";}
 		std::vector<Madeline::Window> windowStack;
@@ -94,6 +90,7 @@ namespace Madeline
 		VkDevice device							{ VK_NULL_HANDLE };
 		VkQueue graphicsQueue					{ VK_NULL_HANDLE };
 		VkQueue presentQueue					{ VK_NULL_HANDLE };
+		QueueFamilyIndices queueIndices;
 		VulkanWindowHandles windowHandles
 		{
 			&instance,
@@ -101,7 +98,8 @@ namespace Madeline
 			&debugMessenger,
 			&device,
 			&graphicsQueue,
-			&presentQueue
+			&presentQueue,
+			&queueIndices
 		};
 	};
 }

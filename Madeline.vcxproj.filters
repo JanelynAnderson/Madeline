@@ -13,6 +13,15 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{b63a2f63-aff0-467d-b07f-e35c4df46869}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Vertex">
+      <UniqueIdentifier>{1513b677-6002-4fbb-9167-eacd96d36dd5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Fragment">
+      <UniqueIdentifier>{4a0d8cf1-48b2-4c62-b02f-6e2806bbfad6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Madeline\WindowManager\WindowManager.hpp">
@@ -53,5 +62,14 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="Shaders\Fragment\shader.frag">
+      <Filter>Shaders\Fragment</Filter>
+    </None>
+    <None Include="Shaders\Vertex\shader.vert">
+      <Filter>Shaders\Vertex</Filter>
+    </None>
+    <None Include="Shaders\compile.bat">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

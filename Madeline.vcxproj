@@ -160,6 +160,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="Shaders\compile.bat" />
+    <None Include="Shaders\Fragment\shader.frag" />
+    <None Include="Shaders\Vertex\shader.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

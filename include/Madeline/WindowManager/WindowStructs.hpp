@@ -3,14 +3,24 @@
 
 namespace Madeline
 {
+	struct QueueFamilyIndices
+	{
+		std::optional<uint32_t> graphicsFamily;
+		std::optional<uint32_t> presentFamily;
+		bool isComplete()
+		{
+			return graphicsFamily.has_value() && presentFamily.has_value();
+		}
+	};
 	struct VulkanWindowHandles
 	{
-		VkInstance* rInstance;
-		VkPhysicalDevice* rPhysicalDevice;
-		VkDebugUtilsMessengerEXT* rDebugMessenger;
-		VkDevice* rDevice;
-		VkQueue* rGraphicsQueue;
-		VkQueue* rPresentQueue;
+		VkInstance* pInstance;
+		VkPhysicalDevice* pPhysicalDevice;
+		VkDebugUtilsMessengerEXT* pDebugMessenger;
+		VkDevice* pDevice;
+		VkQueue* pGraphicsQueue;
+		VkQueue* pPresentQueue;
+		QueueFamilyIndices* pQueueIndicies;
 		VulkanWindowHandles
 		(
 			VkInstance* __IN__Instance,
@@ -18,23 +28,26 @@ namespace Madeline
 			VkDebugUtilsMessengerEXT* __IN__DebugMessenger,
 			VkDevice* __IN__Device,
 			VkQueue* __IN__GraphicsQueue,
-			VkQueue* __IN__PresentQueue
+			VkQueue* __IN__PresentQueue,
+			QueueFamilyIndices* __IN__QueueIndicies
 		)
 		:
-		rInstance{ __IN__Instance },
-		rPhysicalDevice{ __IN__PhysicalDevice },
-		rDebugMessenger{ __IN__DebugMessenger },
-		rDevice{ __IN__Device },
-		rGraphicsQueue{ __IN__GraphicsQueue },
-		rPresentQueue{ __IN__PresentQueue }
+		pInstance{ __IN__Instance },
+		pPhysicalDevice{ __IN__PhysicalDevice },
+		pDebugMessenger{ __IN__DebugMessenger },
+		pDevice{ __IN__Device },
+		pGraphicsQueue{ __IN__GraphicsQueue },
+		pPresentQueue{ __IN__PresentQueue },
+		pQueueIndicies{ __IN__QueueIndicies }
 		{}
 		VulkanWindowHandles& operator=(const VulkanWindowHandles& other)
 		{
-			rInstance = other.rInstance;
-			rPhysicalDevice = other.rPhysicalDevice;
-			rDebugMessenger = other.rDebugMessenger;
-			rDevice = other.rDevice;
-			rGraphicsQueue = other.rGraphicsQueue;
+			pInstance = other.pInstance;
+			pPhysicalDevice = other.pPhysicalDevice;
+			pDebugMessenger = other.pDebugMessenger;
+			pDevice = other.pDevice;
+			pGraphicsQueue = other.pGraphicsQueue;
+			pQueueIndicies = other.pQueueIndicies;
 			return *this;
 		}
 
@@ -45,15 +58,6 @@ namespace Madeline
 		std::string NAME = "defult";
 		uint32_t WIDTH = 300;
 		uint32_t HEIGHT = 300;
-	};
-	struct QueueFamilyIndices
-	{
-		std::optional<uint32_t> graphicsFamily;
-		std::optional<uint32_t> presentFamily;
-		bool isComplete()
-		{
-			return graphicsFamily.has_value() && presentFamily.has_value();
-		}
 	};
 	struct SwapChainSupportDetails
 	{

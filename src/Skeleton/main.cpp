@@ -10,7 +10,7 @@ int main( int, char* [] )
 	boost::log::sources::logger lg;
 
 	std::unique_ptr<Madeline::WindowManager> WinMngr(new Madeline::WindowManager);
-	WinMngr->initalizeVulkanAndDebug();
+	WinMngr->initalize_GLFW_Vulkan_Debug();
 
 	//X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X
 	// X X X X X X X X X Start Create Startup Window(s)  X X X X X X X X X X X

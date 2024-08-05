@@ -2,7 +2,7 @@
 
 namespace Madeline
 {
-	void WindowManager::initalizeVulkanAndDebug()
+	void WindowManager::initalize_GLFW_Vulkan_Debug()
 	{
 		initalizeGLFW();
 		createVulkanInstance();
@@ -11,11 +11,10 @@ namespace Madeline
 
 	void WindowManager::finalizeInitalization()
 	{
-		createAllSurfaces();
+		applyFunctionToAllWindows(&Window::createSurface);
 		pickPhysicalDevice();
 		createLogicalDevice();
-		createSwapChain();
-		createImageViews();
+		applyFunctionToAllWindows(&Window::windowGraphicsSetup);
 	}
 
 	void WindowManager::cleanup()
@@ -156,7 +155,7 @@ namespace Madeline
 		bool swapChainAdequatePresent = false;
 		if (extentionsSupported)
 		{
-			SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device, windowStack.at(0).getSurface());
+			SwapChainSupportDetails swapChainSupport = windowStack.at(0).querySwapChainSupport(device);
 			swapChainAdequateFormat = !swapChainSupport.format.empty();
 			swapChainAdequatePresent = !swapChainSupport.presentModes.empty();
 		}
@@ -292,7 +291,7 @@ namespace Madeline
 		}
 	}
 
-	Madeline::QueueFamilyIndices WindowManager::findQueueFamilies(VkPhysicalDevice device)
+	QueueFamilyIndices WindowManager::findQueueFamilies(VkPhysicalDevice device)
 	{
 		QueueFamilyIndices indices;
 
@@ -323,14 +322,14 @@ namespace Madeline
 
 	void WindowManager::createLogicalDevice()
 	{
-		QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+		queueIndices = findQueueFamilies(physicalDevice);
 
 		float queuePriority = 1.0f;
 		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 		std::set<uint32_t> uniqueQueueFamilies =
 		{
-			indices.graphicsFamily.value(),
-			indices.presentFamily.value()
+			queueIndices.graphicsFamily.value(),
+			queueIndices.presentFamily.value()
 		};
 		for (uint32_t queueFamily : uniqueQueueFamilies)
 		{
@@ -370,21 +369,8 @@ namespace Madeline
 			throw std::runtime_error("failed to create logical device!");
 		}
 
-		vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
-		vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
-	}
-
-	void WindowManager::createAllSurfaces()
-	{
-		for (int32_t i = static_cast<int32_t>(windowStack.size()-1); i >= 0; i--)
-		{
-			VkSurfaceKHR surface;
-			if (glfwCreateWindowSurface(instance, windowStack.at(i).getWindow(), nullptr, &surface) != VK_SUCCESS)
-			{
-				throw std::runtime_error("failed to create window surface");
-			}
-			windowStack.at(i).setSurface(surface);
-		}
+		vkGetDeviceQueue(device, queueIndices.graphicsFamily.value(), 0, &graphicsQueue);
+		vkGetDeviceQueue(device, queueIndices.presentFamily.value(), 0, &presentQueue);
 	}
 	
 	bool WindowManager::checkDeviceExtensionSupport(VkPhysicalDevice device)
@@ -404,127 +390,11 @@ namespace Madeline
 		return requiredExtensions.empty();
 	}
 	
-	SwapChainSupportDetails WindowManager::querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface)
-	{
-		SwapChainSupportDetails details;
-
-		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
-
-		uint32_t formatCount;
-		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
-		
-		if (formatCount != 0)
-		{
-			details.format.resize(formatCount);
-			vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.format.data());
-		}
-
-		uint32_t presentModeCount;
-		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
-		
-		if (presentModeCount != 0)
-		{
-			details.presentModes.resize(presentModeCount);
-			vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
-		}
-		return details;
-	}
-	
-	VkSurfaceFormatKHR WindowManager::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
-	{
-		for (const auto& availableFormat : availableFormats)
-		{
-			if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-			{
-				return availableFormat;
-			}
-		}
-
-		return availableFormats.at(0);
-	}
-	
-	VkPresentModeKHR WindowManager::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
-	{
-		for (const auto& availablePresentMode : availablePresentModes)
-		{
-			if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
-			{
-				return availablePresentMode;
-			}
-		}
-		return VK_PRESENT_MODE_FIFO_KHR;
-	}
-
-	void WindowManager::createSwapChain()
-	{
-		
-		//create generic createInfo
-		VkSwapchainCreateInfoKHR createInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		createInfo.imageArrayLayers = 1;
-		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-		QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
-		uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
-
-		if (indices.graphicsFamily != indices.presentFamily)
-		{
-			createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-			createInfo.queueFamilyIndexCount = 2;
-			createInfo.pQueueFamilyIndices = queueFamilyIndices;
-		}
-		else
-		{
-			createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-			createInfo.queueFamilyIndexCount = 0;
-			createInfo.pQueueFamilyIndices = nullptr;
-		}
-		createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-		createInfo.clipped = VK_TRUE;
-		createInfo.oldSwapchain = nullptr;
-		for (auto& window : windowStack)
-		{
-			SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice, window.getSurface());
-
-			VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.format);
-			VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-
-			uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-			if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
-			{
-				imageCount = swapChainSupport.capabilities.maxImageCount;
-			}
-
-			createInfo.minImageCount = imageCount;
-			createInfo.imageFormat = surfaceFormat.format;
-			createInfo.imageColorSpace = surfaceFormat.colorSpace;
-			createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
-			createInfo.presentMode = presentMode;
-
-
-			VkExtent2D extent = window.chooseSwapExtent(swapChainSupport.capabilities);
-
-			createInfo.surface = window.getSurface();
-			createInfo.imageExtent = extent;
-
-			if (vkCreateSwapchainKHR(device, &createInfo, nullptr, window.getSwapchain()) != VK_SUCCESS)
-			{
-				throw std::runtime_error("failed to create swap chain!");
-			}
-
-			vkGetSwapchainImagesKHR(device, *window.getSwapchain(), &imageCount, nullptr);
-			window.getSwapChainImages()->resize(imageCount);
-			vkGetSwapchainImagesKHR(device, *window.getSwapchain(), &imageCount, window.getSwapChainImages()->data());
-			window.setSwapChainImageFormat(surfaceFormat.format);
-			window.setSwapChainImageExtent(extent);
-		}
-	}
-	
-	void WindowManager::createImageViews()
+	void WindowManager::applyFunctionToAllWindows(pWindowMemberFunction func)
 	{
 		for (auto& window : windowStack)
 		{
-			window.createImageViews();
+			(window.*func)();
 		}
 	}
 }

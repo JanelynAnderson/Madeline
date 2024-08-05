@@ -9,22 +9,47 @@ namespace Madeline
 	{
 	public:
 		Window( windowConfig& __IN__Config, VulkanWindowHandles* __IN__winmngrHandles);
-		void initWindow();
 		void mainLoop();
 		void cleanupWindow();
 		bool shouldWindowClose();
-		void setSurface(VkSurfaceKHR& surface);
-		void setSwapChainImageFormat(VkFormat swapChainImageFormat) { this->swapChainImageFormat = swapChainImageFormat; };
-		void setSwapChainImageExtent(VkExtent2D swapChainExtent) { this->swapChainExtent = swapChainExtent; };
-		VkSurfaceKHR getSurface(){ return surface; }
+		void createSurface();
+		void windowGraphicsSetup();
+		SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+		VkSurfaceKHR getSurface() { return surface; }
 		GLFWwindow* getWindow() { return window; }
-		VkSwapchainKHR* getSwapchain() { return &swapChain; }
-		std::vector<VkImage>* getSwapChainImages() { return &swapChainImages; }
 		windowConfig getWindowConfig() { return Config; };
-		VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
-		void createImageViews();
+	
 	private:
-		GLFWwindow* window = nullptr;
+		void createSwapChain();
+		void createImageViews();
+		void createRenderPass();
+		void createGraphicsPipeline();
+
+		VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+		static std::vector<char> readFile(const std::string& filename)
+		{
+			std::ifstream file(filename, std::ios::ate | std::ios::binary);
+
+			if (!file.is_open())
+			{
+				throw std::runtime_error("failed to open file!");
+			}
+
+			size_t fileSize = static_cast<size_t>(file.tellg());
+			std::vector<char> buffer(fileSize);
+
+			file.seekg(0);
+			file.read(buffer.data(), fileSize);
+
+			file.close();
+
+			return buffer;
+		}
+		VkShaderModule createShaderModule(const std::vector<char>& code);
+		VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+		VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+		
+		GLFWwindow* window{};
 		windowConfig Config;
 		VulkanWindowHandles* winmngrHandles;
 		VkSurfaceKHR surface;
@@ -33,5 +58,8 @@ namespace Madeline
 		std::vector<VkImageView> swapChainImageViews;
 		VkFormat swapChainImageFormat;
 		VkExtent2D swapChainExtent;
+		VkRenderPass renderPass;
+		VkPipeline graphicsPipeline;
+		VkPipelineLayout pipelineLayout;
 	};
 }
