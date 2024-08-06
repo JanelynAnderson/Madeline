@@ -3,15 +3,17 @@
 namespace Madeline
 {
 	Window::Window(windowConfig& __IN__Config, VulkanWindowHandles* __IN__winmngrHandles) :
-	Config{ __IN__Config },
-	winmngrHandles{__IN__winmngrHandles},
-	pipelineLayout{ VK_NULL_HANDLE },
-	renderPass{ VK_NULL_HANDLE },
-	surface{ VK_NULL_HANDLE },
-	swapChain{ VK_NULL_HANDLE },
-	swapChainExtent{},
-	swapChainImageFormat{},
-	graphicsPipeline{VK_NULL_HANDLE}
+	Config { __IN__Config },
+	winmngrHandles { __IN__winmngrHandles },
+	pipelineLayout { VK_NULL_HANDLE },
+	renderPass { VK_NULL_HANDLE },
+	surface { VK_NULL_HANDLE },
+	swapChain { VK_NULL_HANDLE },
+	swapChainExtent {},
+	swapChainImageFormat {},
+	graphicsPipeline { VK_NULL_HANDLE },
+	commandPool { VK_NULL_HANDLE },
+	commandBuffer { VK_NULL_HANDLE }
 	{
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
@@ -31,14 +33,21 @@ namespace Madeline
 	}
 
 	void Window::cleanupWindow()
-	{
+	{	
+		vkDeviceWaitIdle(*winmngrHandles->pDevice);
+
+		vkDestroyCommandPool(*winmngrHandles->pDevice, commandPool, nullptr);
+
+		for ( auto framebuffer : swapChainFramebuffers )
+			vkDestroyFramebuffer(*winmngrHandles->pDevice, framebuffer, nullptr);
+
 		vkDestroyPipeline(*winmngrHandles->pDevice, graphicsPipeline, nullptr);
 		vkDestroyPipelineLayout(*winmngrHandles->pDevice, pipelineLayout, nullptr);
 		vkDestroyRenderPass(*winmngrHandles->pDevice, renderPass, nullptr);
+
 		for ( auto imageView : swapChainImageViews )
-		{
 			vkDestroyImageView( *winmngrHandles->pDevice, imageView, nullptr );
-		}
+
 		vkDestroySwapchainKHR( *winmngrHandles->pDevice, swapChain, nullptr );
 		vkDestroySurfaceKHR( *winmngrHandles->pInstance, surface, nullptr );
 		glfwDestroyWindow( window );
@@ -143,18 +152,6 @@ namespace Madeline
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		inputAssembly.primitiveRestartEnable = VK_FALSE;
-
-		/*VkViewport viewport{};
-		viewport.x = 0.0f;
-		viewport.y = 0.0f;
-		viewport.width = (float) swapChainExtent.width;
-		viewport.height = (float) swapChainExtent.height;
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-
-		VkRect2D scissor{};
-		scissor.offset = {0,0};
-		scissor.extent = swapChainExtent;*/
 
 		std::vector<VkDynamicState> dynamicStates = {
 			VK_DYNAMIC_STATE_VIEWPORT,
@@ -292,6 +289,15 @@ namespace Madeline
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpass.colorAttachmentCount = 1;
 		subpass.pColorAttachments = &colorAttachmentRef;
+	
+		VkSubpassDependency dependency{};
+		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+		dependency.dstSubpass = 0;
+		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependency.srcAccessMask = 0;
+		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
 
 		VkRenderPassCreateInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -299,6 +305,8 @@ namespace Madeline
 		renderPassInfo.pAttachments = &colorAttachment;
 		renderPassInfo.subpassCount = 1;
 		renderPassInfo.pSubpasses = &subpass;
+		renderPassInfo.dependencyCount = 1;
+		renderPassInfo.pDependencies = &dependency;
 
 		if (vkCreateRenderPass(*winmngrHandles->pDevice, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS)
 		{
@@ -312,6 +320,9 @@ namespace Madeline
 		createImageViews();
 		createRenderPass();
 		createGraphicsPipeline();
+		createFramebuffers();
+		createCommandPool();
+		createCommandBuffer();
 	}
 
 	void Window::createSwapChain()
@@ -434,4 +445,108 @@ namespace Madeline
 			throw std::runtime_error("failed to create window surface");
 		}
 	}
+
+	void Window::createFramebuffers()
+	{
+		swapChainFramebuffers.resize(swapChainImageViews.size());
+		for (size_t i = 0; i < swapChainImages.size(); i++)
+		{
+			VkImageView attachments[] = {
+				swapChainImageViews[i]
+			};
+
+			VkFramebufferCreateInfo framebufferInfo{};
+			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+			framebufferInfo.renderPass = renderPass;
+			framebufferInfo.attachmentCount = 1;
+			framebufferInfo.pAttachments = attachments;
+			framebufferInfo.width = swapChainExtent.width;
+			framebufferInfo.height = swapChainExtent.height;
+			framebufferInfo.layers = 1;
+
+			if (vkCreateFramebuffer(*winmngrHandles->pDevice, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS)
+			{
+				throw std::runtime_error("failed to create framebuffer!");
+			}
+		}
+	}
+
+	void Window::createCommandPool()
+	{
+		VkCommandPoolCreateInfo poolInfo{};
+		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		poolInfo.queueFamilyIndex = (*winmngrHandles->pQueueIndicies).graphicsFamily.value();
+
+		if (vkCreateCommandPool(*winmngrHandles->pDevice, &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create command pool!");
+		}
+	}
+
+	void Window::createCommandBuffer()
+	{
+		VkCommandBufferAllocateInfo allocInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocInfo.commandPool = commandPool;
+		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		allocInfo.commandBufferCount = 1;
+
+		if (vkAllocateCommandBuffers(*winmngrHandles->pDevice, &allocInfo, &commandBuffer) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to allocate command buffers!");
+		}
+	}
+
+	void Window::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
+	{
+		VkCommandBufferBeginInfo beginInfo{};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.flags = 0;
+		beginInfo.pInheritanceInfo = nullptr;
+
+		if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to begin recording command buffer!");
+		}
+
+		VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
+
+		VkRenderPassBeginInfo renderPassInfo{};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassInfo.renderPass = renderPass;
+		renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
+		renderPassInfo.renderArea = {0,0};
+		renderPassInfo.renderArea.extent = swapChainExtent;
+		renderPassInfo.clearValueCount = 1;
+		renderPassInfo.pClearValues = &clearColor;
+		
+		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+
+		VkViewport viewport{};
+		viewport.x = 0.0f;
+		viewport.y = 0.0f;
+		viewport.width = static_cast<float>( swapChainExtent.width );
+		viewport.height = static_cast<float>( swapChainExtent.height );
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+		VkRect2D scissor{};
+		scissor.offset = {0,0};
+		scissor.extent = swapChainExtent;
+		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+
+		vkCmdEndRenderPass(commandBuffer);
+
+		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to end recording command buffer!");
+		}
+	}
+
+	
 }

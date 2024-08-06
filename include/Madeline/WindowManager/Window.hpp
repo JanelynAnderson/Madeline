@@ -19,11 +19,21 @@ namespace Madeline
 		GLFWwindow* getWindow() { return window; }
 		windowConfig getWindowConfig() { return Config; };
 	
+
+		VkSwapchainKHR swapChain;
+		VkCommandBuffer commandBuffer;
+		void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+
 	private:
+		void createGraphicsPipeline();
 		void createSwapChain();
 		void createImageViews();
 		void createRenderPass();
-		void createGraphicsPipeline();
+		void createFramebuffers();
+		void createCommandPool();
+		void createCommandBuffer();
+		void createSyncObjects();
+		void drawFame();
 
 		VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 		static std::vector<char> readFile(const std::string& filename)
@@ -53,7 +63,8 @@ namespace Madeline
 		windowConfig Config;
 		VulkanWindowHandles* winmngrHandles;
 		VkSurfaceKHR surface;
-		VkSwapchainKHR swapChain;
+
+		
 		std::vector<VkImage> swapChainImages;
 		std::vector<VkImageView> swapChainImageViews;
 		VkFormat swapChainImageFormat;
@@ -61,5 +72,9 @@ namespace Madeline
 		VkRenderPass renderPass;
 		VkPipeline graphicsPipeline;
 		VkPipelineLayout pipelineLayout;
+		std::vector<VkFramebuffer> swapChainFramebuffers;
+		
+
+		VkCommandPool commandPool;
 	};
 }

@@ -70,6 +70,8 @@ namespace Madeline
 		void createLogicalDevice();
 		bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 		void applyFunctionToAllWindows(pWindowMemberFunction func);
+		void createSyncObjects();
+		void drawFrames();
 	private:
 		std::string boolToString(bool value) {return value ? "TRUE" : "FALSE";}
 		std::vector<Madeline::Window> windowStack;
@@ -101,6 +103,9 @@ namespace Madeline
 			&presentQueue,
 			&queueIndices
 		};
+		VkSemaphore imageAvailableSemaphore;
+		VkSemaphore renderFinishedSemaphore;
+		VkFence inFlightFence;
 	};
 }
 
