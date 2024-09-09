@@ -45,6 +45,7 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <EnableASAN>false</EnableASAN>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -115,7 +116,8 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\Program Files\boost\boost_1_85_0\stage\lib;C:\VulkanSDK\1.3.280.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalOptions>/fsanitize=address</AdditionalOptions>
+      <AdditionalOptions>
+      </AdditionalOptions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
     </ClCompile>
@@ -149,7 +151,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="include\Madeline\WindowManager\Devices.hpp" />
     <ClInclude Include="include\Madeline\WindowManager\Swapchain.hpp" />
+    <ClInclude Include="include\Madeline\WindowManager\VulkanDebugMessager.hpp" />
     <ClInclude Include="include\Madeline\WindowManager\Window.hpp" />
     <ClInclude Include="include\Madeline\WindowManager\WindowManager.hpp" />
     <ClInclude Include="include\Madeline\WindowManager\WindowStructs.hpp" />
@@ -157,6 +161,8 @@
     <ClInclude Include="include\Skeleton\Skeleton.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Madeline\WindowManager\Devices.cpp" />
+    <ClCompile Include="src\Madeline\WindowManager\VulkanDebugMessager.cpp" />
     <ClCompile Include="src\Madeline\WindowManager\Swapchain.cpp" />
     <ClCompile Include="src\Madeline\WindowManager\Window.cpp" />
     <ClCompile Include="src\Madeline\WindowManager\WindowManager.cpp" />

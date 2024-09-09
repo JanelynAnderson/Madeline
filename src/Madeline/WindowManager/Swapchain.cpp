@@ -36,7 +36,7 @@ namespace Madeline
 		createInfo.clipped = VK_TRUE;
 		createInfo.oldSwapchain = nullptr;
 
-		SwapChainSupportDetails swapChainSupport = querySwapChainSupport(vulkanObjects->physicalDevice);
+		SwapchainSupportDetails swapChainSupport = querySwapchainSupport(vulkanObjects->physicalDevice);
 
 		VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.format);
 		VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
@@ -71,9 +71,9 @@ namespace Madeline
 
 	}
 
-	SwapChainSupportDetails Swapchain::querySwapChainSupport(VkPhysicalDevice device)
+	SwapchainSupportDetails Swapchain::querySwapchainSupport(VkPhysicalDevice device)
 	{
-		SwapChainSupportDetails details;
+		SwapchainSupportDetails details;
 
 		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, windowObjects->surface, &details.capabilities);
 

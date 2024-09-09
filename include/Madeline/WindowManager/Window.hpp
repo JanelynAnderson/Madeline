@@ -24,7 +24,7 @@ namespace Madeline
 		void createSurface();
 		void windowGraphicsSetup();
 		
-		VkSurfaceKHR* getSurface() { return &windowObjects->surface; }
+		VkSurfaceKHR getSurface() { return windowObjects->surface; }
 		GLFWwindow* getWindow() { return windowObjects->window; }
 		Swapchain& getSwapchain() { return swapchain; }
 		void drawFrame();

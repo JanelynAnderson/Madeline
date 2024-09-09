@@ -24,7 +24,7 @@ namespace Madeline
 	};
 	
 	
-	struct SwapChainSupportDetails
+	struct SwapchainSupportDetails
 	{
 		VkSurfaceCapabilitiesKHR capabilities;
 		std::vector<VkSurfaceFormatKHR> format;
