@@ -1,13 +1,13 @@
 #include "include/Skeleton/Skeleton.hpp"
-#include "include/Madeline/Logger/Logging.hpp"
+//#include "include/Madeline/Logger/Logging.hpp"
 #include "include/Madeline/WindowManager/WindowManager.hpp"
 
 
 int main( int, char* [] )
 {
-	Madeline::Logging *Logsystem = new Madeline::Logging;
-	delete Logsystem;
-	boost::log::sources::logger lg;
+	//Madeline::Logging *Logsystem = new Madeline::Logging;
+	//delete Logsystem;
+	//boost::log::sources::logger lg;
 
 	std::unique_ptr<Madeline::WindowManager> WinMngr(new Madeline::WindowManager);
 	WinMngr->initalize_GLFW_Vulkan_Debug();
@@ -16,10 +16,10 @@ int main( int, char* [] )
 	// X X X X X X X X X Start Create Startup Window(s)  X X X X X X X X X X X
 	//X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X
 	
-	Madeline::windowConfig Window1;
+	Madeline::WindowConfig Window1;
 	Window1.HEIGHT = 800;
 	Window1.WIDTH = 800;
-	Window1.NAME = "Test Window UwU";
+	Window1.NAME = "Test Window";
 	WinMngr->addWindow(Window1);
 
 	/*

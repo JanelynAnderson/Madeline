@@ -27,9 +27,6 @@
     <ClInclude Include="include\Madeline\WindowManager\WindowManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\Madeline\Logger\Logging.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\Skeleton\Skeleton.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -42,11 +39,11 @@
     <ClInclude Include="include\Madeline\WindowManager\WindowStructs.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\Madeline\WindowManager\Swapchain.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Madeline\Logger\Logging.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\Madeline\WindowManager\WindowManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -57,6 +54,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Madeline\WindowManager\WinElements\Button.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Madeline\WindowManager\Swapchain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

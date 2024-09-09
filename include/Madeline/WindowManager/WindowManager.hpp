@@ -18,7 +18,7 @@ namespace Madeline
 
 		void allMainLoops();
 		
-		void addWindow( Madeline::windowConfig& Config );
+		void addWindow( Madeline::WindowConfig& Config );
 		
 		bool areActiveWindows();
 		
@@ -70,8 +70,6 @@ namespace Madeline
 		void createLogicalDevice();
 		bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 		void applyFunctionToAllWindows(pWindowMemberFunction func);
-		void createSyncObjects();
-		void drawFrames();
 	private:
 		std::string boolToString(bool value) {return value ? "TRUE" : "FALSE";}
 		std::vector<Madeline::Window> windowStack;
@@ -86,26 +84,8 @@ namespace Madeline
 		#else
 			const bool enableValidationLayers = true;
 		#endif
-		VkInstance instance						{ VK_NULL_HANDLE };
-		VkPhysicalDevice physicalDevice			{ VK_NULL_HANDLE };
-		VkDebugUtilsMessengerEXT debugMessenger { VK_NULL_HANDLE };
-		VkDevice device							{ VK_NULL_HANDLE };
-		VkQueue graphicsQueue					{ VK_NULL_HANDLE };
-		VkQueue presentQueue					{ VK_NULL_HANDLE };
-		QueueFamilyIndices queueIndices;
-		VulkanWindowHandles windowHandles
-		{
-			&instance,
-			&physicalDevice,
-			&debugMessenger,
-			&device,
-			&graphicsQueue,
-			&presentQueue,
-			&queueIndices
-		};
-		VkSemaphore imageAvailableSemaphore;
-		VkSemaphore renderFinishedSemaphore;
-		VkFence inFlightFence;
+
+		std::shared_ptr<VkObjects> vulkanObjects = std::make_shared<VkObjects>();
 	};
 }
 

@@ -15,39 +15,28 @@ namespace Madeline
 		pickPhysicalDevice();
 		createLogicalDevice();
 		applyFunctionToAllWindows(&Window::windowGraphicsSetup);
-		createSyncObjects();
 	}
 
 	void WindowManager::cleanup()
 	{
-		vkDeviceWaitIdle(device);
-
-		vkDestroySemaphore(device, imageAvailableSemaphore, nullptr);
-		vkDestroySemaphore(device, renderFinishedSemaphore, nullptr);
-		vkDestroyFence(device, inFlightFence, nullptr);
-
 		if (enableValidationLayers)
 		{
-			DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+			DestroyDebugUtilsMessengerEXT(vulkanObjects->instance, vulkanObjects->debugMessenger, nullptr);
 		}
-		vkDestroyDevice(device, nullptr);
+		vkDestroyDevice(vulkanObjects->device, nullptr);
 		terminateVulkanInstance();
 		glfwTerminate();
 	}
 	
-	void WindowManager::addWindow(Madeline::windowConfig& Config)
+	void WindowManager::addWindow(Madeline::WindowConfig& Config)
 	{
-		Window createdWindow(Config, &windowHandles);
-		windowStack.push_back(createdWindow);
+		windowStack.push_back(Window{Config, vulkanObjects});
 	}
 	
 	void WindowManager::allMainLoops()
 	{
-		for (Window window : windowStack)
-		{
-			window.mainLoop();
-		}
-		drawFrames();
+		applyFunctionToAllWindows(&Window::drawFrame);
+		applyFunctionToAllWindows(&Window::mainLoop);
 	}
 	
 	bool WindowManager::areActiveWindows()
@@ -83,9 +72,9 @@ namespace Madeline
 		
 		VkApplicationInfo appInfo{};
 		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-		appInfo.pApplicationName = "Hello";
+		appInfo.pApplicationName = "Abigail";
 		appInfo.applicationVersion = VK_MAKE_VERSION(0,1,0);
-		appInfo.pEngineName = "No engine";
+		appInfo.pEngineName = "Madeline Engine";
 		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 		appInfo.apiVersion = VK_API_VERSION_1_0;
 
@@ -114,7 +103,7 @@ namespace Madeline
 			createInfo.pNext = nullptr;
 		}
 
-		if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
+		if (vkCreateInstance(&createInfo, nullptr, &vulkanObjects->instance) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create instance!");
 		}
@@ -122,31 +111,31 @@ namespace Madeline
 	
 	void WindowManager::terminateVulkanInstance()
 	{
-		vkDestroyInstance(instance, nullptr);
+		vkDestroyInstance(vulkanObjects->instance, nullptr);
 	}
 
 	void WindowManager::pickPhysicalDevice()
 	{
 		uint32_t deviceCount = 0;
-		vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+		vkEnumeratePhysicalDevices(vulkanObjects->instance, &deviceCount, nullptr);
 		if (deviceCount == 0) {
 			std::cerr << "failed to find GPUs with Vulkan support!";
 		}
 		std::vector<VkPhysicalDevice> devices(deviceCount);
-		vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+		vkEnumeratePhysicalDevices(vulkanObjects->instance, &deviceCount, devices.data());
 
-		for (const auto& device : devices)
+		for (auto& device : devices)
 		{
 			VkPhysicalDeviceProperties deviceProperties;
 			vkGetPhysicalDeviceProperties(device, &deviceProperties);
 			if (isDeviceSuitable(device) && std::strcmp(deviceProperties.deviceName, "NVIDIA GeForce RTX 4070 Laptop GPU") == 0)
 			{
-				physicalDevice = device;
+				vulkanObjects->physicalDevice = device;
 				break;
 			}
 		}
 
-		if (physicalDevice == VK_NULL_HANDLE)
+		if (vulkanObjects->physicalDevice == VK_NULL_HANDLE)
 		{
 			throw std::runtime_error("failed to find a suitable GPU!!!");
 		}
@@ -162,7 +151,7 @@ namespace Madeline
 		bool swapChainAdequatePresent = false;
 		if (extentionsSupported)
 		{
-			SwapChainSupportDetails swapChainSupport = windowStack.at(0).querySwapChainSupport(device);
+			SwapChainSupportDetails swapChainSupport = windowStack.at(0).getSwapchain().querySwapChainSupport(device);
 			swapChainAdequateFormat = !swapChainSupport.format.empty();
 			swapChainAdequatePresent = !swapChainSupport.presentModes.empty();
 		}
@@ -173,8 +162,8 @@ namespace Madeline
 				  << "\nGPU checks:" 
 				  << "\n\tQueue Familys Supported: " << boolToString(indices.isComplete())
 				  << "\n\tExtensions Supported: " << boolToString(extentionsSupported)
-				  << "\n\tSwap Chain Aqequate Format: " << boolToString(swapChainAdequateFormat)
-				  << "\n\tSwap Chain Aqequate Present: " << boolToString(swapChainAdequatePresent)
+				  << "\n\tSwap Chain Adequate Format: " << boolToString(swapChainAdequateFormat)
+				  << "\n\tSwap Chain Adequate Present: " << boolToString(swapChainAdequatePresent)
 				  << std::endl << std::endl;
 		#endif
 		return indices.isComplete() && extentionsSupported && swapChainAdequateFormat && swapChainAdequatePresent;
@@ -253,7 +242,7 @@ namespace Madeline
 		VkDebugUtilsMessengerCreateInfoEXT createInfo{};
 		populateDebugMessengerCreateInfo(createInfo);
 
-		if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS)
+		if (CreateDebugUtilsMessengerEXT(vulkanObjects->instance, &createInfo, nullptr, &vulkanObjects->debugMessenger) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to set up debug messenger!");
 		}
@@ -311,7 +300,7 @@ namespace Madeline
 		int i = 0;
 		for (const auto& queueFamily : queueFamilies) {
 			VkBool32 presentSupport = false;
-			vkGetPhysicalDeviceSurfaceSupportKHR(device, i, windowStack.at(0).getSurface(), &presentSupport);
+			vkGetPhysicalDeviceSurfaceSupportKHR(device, i, *windowStack.at(0).getSurface(), &presentSupport);
 
 			if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
 				indices.graphicsFamily = i;
@@ -325,18 +314,18 @@ namespace Madeline
 			i++;
 		}
 		return indices;
-	}
+	} 
 
 	void WindowManager::createLogicalDevice()
 	{
-		queueIndices = findQueueFamilies(physicalDevice);
+		vulkanObjects->queueIndices = findQueueFamilies(vulkanObjects->physicalDevice);
 
 		float queuePriority = 1.0f;
 		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 		std::set<uint32_t> uniqueQueueFamilies =
 		{
-			queueIndices.graphicsFamily.value(),
-			queueIndices.presentFamily.value()
+			vulkanObjects->queueIndices.graphicsFamily.value(),
+			vulkanObjects->queueIndices.presentFamily.value()
 		};
 		for (uint32_t queueFamily : uniqueQueueFamilies)
 		{
@@ -347,8 +336,6 @@ namespace Madeline
 			queueCreateInfo.pQueuePriorities = &queuePriority;
 			queueCreateInfos.push_back(queueCreateInfo);
 		}
-		
-		
 
 		VkPhysicalDeviceFeatures deviceFeatures{};
 
@@ -370,14 +357,14 @@ namespace Madeline
 		{
 			createInfo.enabledLayerCount = 0;
 		}
-
-		if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS)
+		
+		if (vkCreateDevice(vulkanObjects->physicalDevice, &createInfo, nullptr, &vulkanObjects->device) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create logical device!");
 		}
 
-		vkGetDeviceQueue(device, queueIndices.graphicsFamily.value(), 0, &graphicsQueue);
-		vkGetDeviceQueue(device, queueIndices.presentFamily.value(), 0, &presentQueue);
+		vkGetDeviceQueue(vulkanObjects->device, vulkanObjects->queueIndices.graphicsFamily.value(), 0, &vulkanObjects->graphicsQueue);
+		vkGetDeviceQueue(vulkanObjects->device, vulkanObjects->queueIndices.presentFamily.value(), 0, &vulkanObjects->presentQueue);
 	}
 	
 	bool WindowManager::checkDeviceExtensionSupport(VkPhysicalDevice device)
@@ -403,66 +390,5 @@ namespace Madeline
 		{
 			(window.*func)();
 		}
-	}
-
-	void WindowManager::createSyncObjects()
-	{
-		VkSemaphoreCreateInfo semaphoreInfo{};
-		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-		VkFenceCreateInfo fenceInfo{};
-		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-		if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphore) != VK_SUCCESS ||
-			vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphore) != VK_SUCCESS ||
-			vkCreateFence(device, &fenceInfo, nullptr, &inFlightFence) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to create semaphores!");
-		}
-	}
-
-	void WindowManager::drawFrames()
-	{
-		vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
-		vkResetFences(device, 1, &inFlightFence);
-
-		uint32_t imageIndex;
-		vkAcquireNextImageKHR(device, windowStack.at(0).swapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
-		vkResetCommandBuffer(windowStack.at(0).commandBuffer, 0);
-		windowStack.at(0).recordCommandBuffer(windowStack.at(0).commandBuffer, imageIndex);
-
-		VkSubmitInfo submitInfo{};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-		VkSemaphore waitSemaphore[] = { imageAvailableSemaphore };
-		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = waitSemaphore;
-		submitInfo.pWaitDstStageMask = waitStages;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &windowStack.at(0).commandBuffer;
-
-		VkSemaphore signalSemaphores[] = { renderFinishedSemaphore };
-		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = signalSemaphores;
-
-		if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to submit draw command buffer!");
-		}
-
-		VkPresentInfoKHR presentInfo{};
-		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-		presentInfo.waitSemaphoreCount = 1;
-		presentInfo.pWaitSemaphores = signalSemaphores;
-
-		VkSwapchainKHR swapChains[] = { windowStack.at(0).swapChain };
-		presentInfo.swapchainCount = 1;
-		presentInfo.pSwapchains = swapChains;
-		presentInfo.pImageIndices = &imageIndex;
-		presentInfo.pResults = nullptr;
-
-		vkQueuePresentKHR(presentQueue, &presentInfo);
 	}
 }

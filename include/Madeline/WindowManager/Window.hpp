@@ -1,41 +1,45 @@
 #pragma once
 #include "include/Skeleton/Skeleton.hpp"
 #include "include/Madeline/WindowManager/WindowStructs.hpp"
-
+#include "include/Madeline/WindowManager/Swapchain.hpp"
 
 namespace Madeline
 {
+	
+
+	struct WindowConfig
+	{
+		std::string NAME = "Default Window Name";
+		uint32_t WIDTH = 300;
+		uint32_t HEIGHT = 300;
+	};
+
 	class Window
 	{
 	public:
-		Window( windowConfig& __IN__Config, VulkanWindowHandles* __IN__winmngrHandles);
+		Window(WindowConfig& __IN__Config, std::shared_ptr<VkObjects> vulkanObjects);
 		void mainLoop();
 		void cleanupWindow();
 		bool shouldWindowClose();
 		void createSurface();
 		void windowGraphicsSetup();
-		SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
-		VkSurfaceKHR getSurface() { return surface; }
-		GLFWwindow* getWindow() { return window; }
-		windowConfig getWindowConfig() { return Config; };
-	
-
-		VkSwapchainKHR swapChain;
-		VkCommandBuffer commandBuffer;
-		void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+		
+		VkSurfaceKHR* getSurface() { return &windowObjects->surface; }
+		GLFWwindow* getWindow() { return windowObjects->window; }
+		Swapchain& getSwapchain() { return swapchain; }
+		void drawFrame();
+		void initWindow();
 
 	private:
+		static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 		void createGraphicsPipeline();
-		void createSwapChain();
-		void createImageViews();
 		void createRenderPass();
-		void createFramebuffers();
 		void createCommandPool();
-		void createCommandBuffer();
-		void createSyncObjects();
-		void drawFame();
-
-		VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+		void createCommandBuffers();
+		void createSyncObjects();		
+		
+		void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+		int MAX_FRAMES_IN_FLIGHT = 2;
 		static std::vector<char> readFile(const std::string& filename)
 		{
 			std::ifstream file(filename, std::ios::ate | std::ios::binary);
@@ -56,25 +60,24 @@ namespace Madeline
 			return buffer;
 		}
 		VkShaderModule createShaderModule(const std::vector<char>& code);
-		VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-		VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-		
-		GLFWwindow* window{};
-		windowConfig Config;
-		VulkanWindowHandles* winmngrHandles;
-		VkSurfaceKHR surface;
 
-		
-		std::vector<VkImage> swapChainImages;
-		std::vector<VkImageView> swapChainImageViews;
-		VkFormat swapChainImageFormat;
-		VkExtent2D swapChainExtent;
-		VkRenderPass renderPass;
-		VkPipeline graphicsPipeline;
-		VkPipelineLayout pipelineLayout;
-		std::vector<VkFramebuffer> swapChainFramebuffers;
-		
+		uint32_t windowWidth;
+		uint32_t windowHeight;
+		std::string windowName;
 
+		std::shared_ptr<VkObjects> vulkanObjects;
+
+		Swapchain swapchain;
+		std::shared_ptr<WinObjects> windowObjects = std::make_shared<WinObjects>();
+
+		std::vector<VkSemaphore> imageAvailableSemaphores;
+		std::vector<VkSemaphore> renderFinishedSemaphores;
+		std::vector<VkFence> inFlightFences;
+
+		std::vector < VkCommandBuffer > commandBuffers;
 		VkCommandPool commandPool;
+
+		uint32_t currentFrame = 0;
+		bool framebufferResized = false;
 	};
 }

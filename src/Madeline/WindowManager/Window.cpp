@@ -1,24 +1,35 @@
 #include <include/Madeline/WindowManager/Window.hpp>
-
+#include <include/Madeline/WindowManager/Swapchain.hpp>
 namespace Madeline
 {
-	Window::Window(windowConfig& __IN__Config, VulkanWindowHandles* __IN__winmngrHandles) :
-	Config { __IN__Config },
-	winmngrHandles { __IN__winmngrHandles },
-	pipelineLayout { VK_NULL_HANDLE },
-	renderPass { VK_NULL_HANDLE },
-	surface { VK_NULL_HANDLE },
-	swapChain { VK_NULL_HANDLE },
-	swapChainExtent {},
-	swapChainImageFormat {},
-	graphicsPipeline { VK_NULL_HANDLE },
+	Window::Window(WindowConfig& __IN__Config, std::shared_ptr<VkObjects> vulkanObjects) :
 	commandPool { VK_NULL_HANDLE },
-	commandBuffer { VK_NULL_HANDLE }
+	commandBuffers { VK_NULL_HANDLE },
+	windowWidth { __IN__Config.WIDTH },
+	windowHeight { __IN__Config.HEIGHT },
+	windowName { __IN__Config.NAME },
+	vulkanObjects{ vulkanObjects }
+	{
+		initWindow();
+		
+		swapchain = Swapchain{vulkanObjects, windowObjects};
+	}
+
+	void Window::initWindow()
 	{
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-		window = glfwCreateWindow(Config.WIDTH, Config.HEIGHT, (Config.NAME).c_str(), nullptr, nullptr);
-		if (!window)
+		
+		if (windowWidth < 1 || windowHeight < 1)
+		{
+			throw std::runtime_error("Window dimentions can not be 0");
+		}
+		
+		windowObjects->window = glfwCreateWindow(static_cast<int>(windowWidth), static_cast<int>(windowHeight), (windowName).c_str(), nullptr, nullptr);
+		
+		glfwSetWindowUserPointer(windowObjects->window, this);
+		glfwSetFramebufferSizeCallback(windowObjects->window, framebufferResizeCallback);
+
+		if (!windowObjects->window)
 		{
 			fprintf(stderr, "Failed to open GLFW window\n");
 			glfwTerminate();
@@ -28,92 +39,40 @@ namespace Madeline
 
 	void Window::mainLoop()
 	{
-		glfwSwapBuffers( Window::window );
+		glfwSwapBuffers(windowObjects->window);
 		glfwPollEvents();
 	}
 
 	void Window::cleanupWindow()
-	{	
-		vkDeviceWaitIdle(*winmngrHandles->pDevice);
+	{
+		vkDeviceWaitIdle(vulkanObjects->device);
 
-		vkDestroyCommandPool(*winmngrHandles->pDevice, commandPool, nullptr);
+		swapchain.cleanupSwapChain();
 
-		for ( auto framebuffer : swapChainFramebuffers )
-			vkDestroyFramebuffer(*winmngrHandles->pDevice, framebuffer, nullptr);
+		vkDestroyPipeline(vulkanObjects->device, windowObjects->graphicsPipeline, nullptr);
+		vkDestroyPipelineLayout(vulkanObjects->device, windowObjects->pipelineLayout, nullptr);
 
-		vkDestroyPipeline(*winmngrHandles->pDevice, graphicsPipeline, nullptr);
-		vkDestroyPipelineLayout(*winmngrHandles->pDevice, pipelineLayout, nullptr);
-		vkDestroyRenderPass(*winmngrHandles->pDevice, renderPass, nullptr);
+		vkDestroyRenderPass(vulkanObjects->device, windowObjects->renderPass, nullptr);
 
-		for ( auto imageView : swapChainImageViews )
-			vkDestroyImageView( *winmngrHandles->pDevice, imageView, nullptr );
+		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		{
+			vkDestroySemaphore(vulkanObjects->device, imageAvailableSemaphores[i], nullptr);
+			vkDestroySemaphore(vulkanObjects->device, renderFinishedSemaphores[i], nullptr);
+			vkDestroyFence(vulkanObjects->device, inFlightFences[i], nullptr);
+		}
 
-		vkDestroySwapchainKHR( *winmngrHandles->pDevice, swapChain, nullptr );
-		vkDestroySurfaceKHR( *winmngrHandles->pInstance, surface, nullptr );
-		glfwDestroyWindow( window );
+		vkDestroyCommandPool(vulkanObjects->device, commandPool, nullptr);
+
+		vkDestroySurfaceKHR( vulkanObjects->instance, windowObjects->surface, nullptr );
+		glfwDestroyWindow( windowObjects->window );
 		#if !NDEBUG
-		std::cout << "The window \"" << Config.NAME << "\" has been destroyed" << std::endl;
+		std::cout << "The window \"" << windowName << "\" has been destroyed" << std::endl;
 		#endif
 	}
 
 	bool Window::shouldWindowClose()
 	{
-		return glfwWindowShouldClose( window );
-	}
-	
-	VkExtent2D Window::chooseSwapExtent( const VkSurfaceCapabilitiesKHR& capabilities ) {
-		#undef max
-		if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
-		{
-			return capabilities.currentExtent;
-		}
-		else
-		{
-			int width, height;
-			glfwGetFramebufferSize(window, &width, &height);
-
-			VkExtent2D actualExtent = {
-				static_cast<uint32_t>(width),
-				static_cast<uint32_t>(height)
-			};
-
-			actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-			actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
-
-			return actualExtent;
-		}
-	}
-
-	void Window::createImageViews()
-	{
-		swapChainImageViews.resize(swapChainImages.size());
-
-		for (size_t i = 0; i < swapChainImages.size(); i++)
-		{
-			VkImageViewCreateInfo createInfo{};
-
-			createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-			createInfo.image = swapChainImages.at(i);
-
-			createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			createInfo.format = swapChainImageFormat;
-
-			createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-			createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-			createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-			createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-
-			createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			createInfo.subresourceRange.baseMipLevel = 0;
-			createInfo.subresourceRange.levelCount = 1;
-			createInfo.subresourceRange.baseArrayLayer = 0;
-			createInfo.subresourceRange.layerCount = 1;
-
-			if (vkCreateImageView(*winmngrHandles->pDevice, &createInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS)
-			{
-				throw std::runtime_error("failed to create image views!");
-			}
-		}
+		return glfwWindowShouldClose( windowObjects->window );
 	}
 
 	void Window::createGraphicsPipeline()
@@ -221,7 +180,7 @@ namespace Madeline
 		pipelineLayoutInfo.pushConstantRangeCount = 0;
 		pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
-		if (vkCreatePipelineLayout(*winmngrHandles->pDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
+		if (vkCreatePipelineLayout(vulkanObjects->device, &pipelineLayoutInfo, nullptr, &windowObjects->pipelineLayout) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create pipeline layout!");
 		}
@@ -240,19 +199,19 @@ namespace Madeline
 		pipelineInfo.pColorBlendState = &colorBlending;
 		pipelineInfo.pDynamicState = &dynamicState;
 		
-		pipelineInfo.layout = pipelineLayout;
-		pipelineInfo.renderPass = renderPass;
+		pipelineInfo.layout = windowObjects->pipelineLayout;
+		pipelineInfo.renderPass = windowObjects->renderPass;
 		pipelineInfo.subpass = 0;
 		pipelineInfo.basePipelineHandle = nullptr;
 		pipelineInfo.basePipelineIndex = -1;
 
-		if (vkCreateGraphicsPipelines(*winmngrHandles->pDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS)
+		if (vkCreateGraphicsPipelines(vulkanObjects->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &windowObjects->graphicsPipeline) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create graphics pipeline!");
 		}
 
-		vkDestroyShaderModule(*winmngrHandles->pDevice, vertShaderModule, nullptr);
-		vkDestroyShaderModule(*winmngrHandles->pDevice, fragShaderModule, nullptr);
+		vkDestroyShaderModule(vulkanObjects->device, vertShaderModule, nullptr);
+		vkDestroyShaderModule(vulkanObjects->device, fragShaderModule, nullptr);
 	}
 
 	VkShaderModule Window::createShaderModule(const std::vector<char>& code)
@@ -263,7 +222,7 @@ namespace Madeline
 		createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
 		VkShaderModule shaderModule;
-		if (vkCreateShaderModule(*winmngrHandles->pDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+		if (vkCreateShaderModule(vulkanObjects->device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create shader module!");
 		}
@@ -274,7 +233,7 @@ namespace Madeline
 	void Window::createRenderPass()
 	{
 		VkAttachmentDescription colorAttachment{};
-		colorAttachment.format = swapChainImageFormat;
+		colorAttachment.format = swapchain.getSwapchainImageFormat();
 		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -308,7 +267,7 @@ namespace Madeline
 		renderPassInfo.dependencyCount = 1;
 		renderPassInfo.pDependencies = &dependency;
 
-		if (vkCreateRenderPass(*winmngrHandles->pDevice, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS)
+		if (vkCreateRenderPass(vulkanObjects->device, &renderPassInfo, nullptr, &windowObjects->renderPass) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create render pass!");
 		}
@@ -316,158 +275,27 @@ namespace Madeline
 
 	void Window::windowGraphicsSetup()
 	{
-		createSwapChain();
-		createImageViews();
+		swapchain.createSwapchain();
+		swapchain.createImageViews();
 		createRenderPass();
 		createGraphicsPipeline();
-		createFramebuffers();
+		swapchain.createFramebuffers();
 		createCommandPool();
-		createCommandBuffer();
+		createCommandBuffers();
+		createSyncObjects();
 	}
-
-	void Window::createSwapChain()
-	{
-		//create generic createInfo
-		VkSwapchainCreateInfoKHR createInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		createInfo.imageArrayLayers = 1;
-		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-		uint32_t queueFamilyIndices[] = { (*winmngrHandles->pQueueIndicies).graphicsFamily.value(), (*winmngrHandles->pQueueIndicies).presentFamily.value() };
-
-		if (*winmngrHandles->pQueueIndicies->graphicsFamily != *winmngrHandles->pQueueIndicies->presentFamily)
-		{
-			createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-			createInfo.queueFamilyIndexCount = 2;
-			createInfo.pQueueFamilyIndices = queueFamilyIndices;
-		}
-		else
-		{
-			createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-			createInfo.queueFamilyIndexCount = 0;
-			createInfo.pQueueFamilyIndices = nullptr;
-		}
-		createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-		createInfo.clipped = VK_TRUE;
-		createInfo.oldSwapchain = nullptr;
-
-		SwapChainSupportDetails swapChainSupport = querySwapChainSupport(*winmngrHandles->pPhysicalDevice);
-
-		VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.format);
-		VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-
-		uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-		if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
-		{
-			imageCount = swapChainSupport.capabilities.maxImageCount;
-		}
-
-		createInfo.minImageCount = imageCount;
-		createInfo.imageFormat = surfaceFormat.format;
-		createInfo.imageColorSpace = surfaceFormat.colorSpace;
-		createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
-		createInfo.presentMode = presentMode;
-
-
-		VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
-
-		createInfo.surface = surface;
-		createInfo.imageExtent = extent;
-
-		if (vkCreateSwapchainKHR(*winmngrHandles->pDevice, &createInfo, nullptr, &swapChain) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to create swap chain!");
-		}
-
-		vkGetSwapchainImagesKHR(*winmngrHandles->pDevice, swapChain, &imageCount, nullptr);
-		swapChainImages.resize(imageCount);
-		vkGetSwapchainImagesKHR(*winmngrHandles->pDevice, swapChain, &imageCount, swapChainImages.data());
-		swapChainImageFormat = surfaceFormat.format;
-		swapChainExtent = extent;
-
-	}
-	
-	SwapChainSupportDetails Window::querySwapChainSupport(VkPhysicalDevice device)
-	{
-		SwapChainSupportDetails details;
-
-		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
-
-		uint32_t formatCount;
-		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
-
-		if (formatCount != 0)
-		{
-			details.format.resize(formatCount);
-			vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.format.data());
-		}
-
-		uint32_t presentModeCount;
-		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
-
-		if (presentModeCount != 0)
-		{
-			details.presentModes.resize(presentModeCount);
-			vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
-		}
-		return details;
-	}
-	
-	VkSurfaceFormatKHR Window::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
-	{
-		for (const auto& availableFormat : availableFormats)
-		{
-			if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-			{
-				return availableFormat;
-			}
-		}
-
-		return availableFormats.at(0);
-	}
-	
-	VkPresentModeKHR Window::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
-	{
-		for (const auto& availablePresentMode : availablePresentModes)
-		{
-			if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
-			{
-				return availablePresentMode;
-			}
-		}
-		return VK_PRESENT_MODE_FIFO_KHR;
-	}
-	
+		
 	void Window::createSurface()
-	{
-		if (glfwCreateWindowSurface(*winmngrHandles->pInstance, window, nullptr, &surface) != VK_SUCCESS)
+	{	
+		auto result = glfwCreateWindowSurface(vulkanObjects->instance, windowObjects->window, nullptr, &windowObjects->surface);
+		switch (result)
+		{
+			case VK_SUCCESS: std::cout << "Success" << std::endl; break;
+			default: std::cout << "Other" << std::endl; break;
+		}
+		if (result != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create window surface");
-		}
-	}
-
-	void Window::createFramebuffers()
-	{
-		swapChainFramebuffers.resize(swapChainImageViews.size());
-		for (size_t i = 0; i < swapChainImages.size(); i++)
-		{
-			VkImageView attachments[] = {
-				swapChainImageViews[i]
-			};
-
-			VkFramebufferCreateInfo framebufferInfo{};
-			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			framebufferInfo.renderPass = renderPass;
-			framebufferInfo.attachmentCount = 1;
-			framebufferInfo.pAttachments = attachments;
-			framebufferInfo.width = swapChainExtent.width;
-			framebufferInfo.height = swapChainExtent.height;
-			framebufferInfo.layers = 1;
-
-			if (vkCreateFramebuffer(*winmngrHandles->pDevice, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS)
-			{
-				throw std::runtime_error("failed to create framebuffer!");
-			}
 		}
 	}
 
@@ -476,23 +304,25 @@ namespace Madeline
 		VkCommandPoolCreateInfo poolInfo{};
 		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-		poolInfo.queueFamilyIndex = (*winmngrHandles->pQueueIndicies).graphicsFamily.value();
+		poolInfo.queueFamilyIndex = vulkanObjects->queueIndices.graphicsFamily.value();
 
-		if (vkCreateCommandPool(*winmngrHandles->pDevice, &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
+		if (vkCreateCommandPool(vulkanObjects->device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create command pool!");
 		}
 	}
 
-	void Window::createCommandBuffer()
+	void Window::createCommandBuffers()
 	{
+		commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+
 		VkCommandBufferAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		allocInfo.commandPool = commandPool;
 		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		allocInfo.commandBufferCount = 1;
-
-		if (vkAllocateCommandBuffers(*winmngrHandles->pDevice, &allocInfo, &commandBuffer) != VK_SUCCESS)
+		allocInfo.commandBufferCount = static_cast < uint32_t >(commandBuffers.size());
+		if (vkAllocateCommandBuffers(vulkanObjects->device, &allocInfo, commandBuffers.data()) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to allocate command buffers!");
 		}
@@ -514,28 +344,28 @@ namespace Madeline
 
 		VkRenderPassBeginInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassInfo.renderPass = renderPass;
-		renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
+		renderPassInfo.renderPass = windowObjects->renderPass;
+		renderPassInfo.framebuffer = swapchain.getFramebufferVector()[imageIndex];
 		renderPassInfo.renderArea = {0,0};
-		renderPassInfo.renderArea.extent = swapChainExtent;
+		renderPassInfo.renderArea.extent = swapchain.getSwapchainExtent();
 		renderPassInfo.clearValueCount = 1;
 		renderPassInfo.pClearValues = &clearColor;
 		
 		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, windowObjects->graphicsPipeline);
 
 		VkViewport viewport{};
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
-		viewport.width = static_cast<float>( swapChainExtent.width );
-		viewport.height = static_cast<float>( swapChainExtent.height );
+		viewport.width = static_cast<float>( swapchain.getSwapchainExtent().width);
+		viewport.height = static_cast<float>( swapchain.getSwapchainExtent().height);
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
 		VkRect2D scissor{};
 		scissor.offset = {0,0};
-		scissor.extent = swapChainExtent;
+		scissor.extent = swapchain.getSwapchainExtent();
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
@@ -548,5 +378,102 @@ namespace Madeline
 		}
 	}
 
+	void Window::createSyncObjects()
+	{
+		imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+		renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+		inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+
+		VkSemaphoreCreateInfo semaphoreInfo{};
+		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+		VkFenceCreateInfo fenceInfo{};
+		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+		for ( size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++ )
+		{
+			if ( vkCreateSemaphore(vulkanObjects->device, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
+				 vkCreateSemaphore(vulkanObjects->device, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
+				 vkCreateFence(vulkanObjects->device, &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS)
+			{
+				throw std::runtime_error("failed to create semaphores!");
+			}
+		}
+	}
+
+	void Window::drawFrame()
+	{
+		vkWaitForFences(vulkanObjects->device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+
+		uint32_t imageIndex;
+		VkResult result = vkAcquireNextImageKHR(vulkanObjects->device, swapchain.getVulkanSwapchain(), UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+		
+		if ( result == VK_ERROR_OUT_OF_DATE_KHR )
+		{
+			swapchain.recreateSwapChain();
+			return;
+		}
+		else if ( result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR )
+		{
+			throw std::runtime_error("failed to aquire swap chain image!");
+		}
+
+		vkResetFences(vulkanObjects->device, 1, &inFlightFences[currentFrame]);
+
+		vkResetCommandBuffer(commandBuffers[currentFrame], 0);
+		recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
+		
+		VkSubmitInfo submitInfo{};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+		VkSemaphore waitSemaphore[] = { imageAvailableSemaphores[currentFrame] };
+		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = waitSemaphore;
+		submitInfo.pWaitDstStageMask = waitStages;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &commandBuffers[currentFrame];
+		
+		VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[currentFrame] };
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = signalSemaphores;
 	
+		if ( vkQueueSubmit(vulkanObjects->graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS )
+		{
+			throw std::runtime_error("failed to submit draw command buffer!");
+		}
+	
+		VkPresentInfoKHR presentInfo{};
+		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+		presentInfo.waitSemaphoreCount = 1;
+		presentInfo.pWaitSemaphores = signalSemaphores;
+
+		VkSwapchainKHR swapChains[] = { swapchain.getVulkanSwapchain() };
+		presentInfo.swapchainCount = 1;
+		presentInfo.pSwapchains = swapChains;
+		presentInfo.pImageIndices = &imageIndex;
+		presentInfo.pResults = nullptr;
+
+		result = vkQueuePresentKHR(vulkanObjects->presentQueue, &presentInfo);
+
+		if ( result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized )
+		{
+			framebufferResized = false;
+			swapchain.recreateSwapChain();
+			return;
+		}
+		else if ( result != VK_SUCCESS )
+			throw std::runtime_error("failed to present swap chain image!");
+
+		currentFrame = ( currentFrame + 1 ) % MAX_FRAMES_IN_FLIGHT;
+	}
+
+	void Window::framebufferResizeCallback(GLFWwindow* window, int width, int height)
+	{
+		auto app = reinterpret_cast<Window*>(glfwGetWindowUserPointer(window));
+		app->framebufferResized = true;
+		app->windowWidth = width;
+		app->windowHeight = height;
+	}
 }

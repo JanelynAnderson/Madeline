@@ -115,6 +115,9 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\Program Files\boost\boost_1_85_0\stage\lib;C:\VulkanSDK\1.3.280.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/fsanitize=address</AdditionalOptions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -133,6 +136,8 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\VulkanSDK\1.3.280.0\Include;C:\Program Files\boost\boost_1_85_0\stage\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>
+      </AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -144,7 +149,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="include\Madeline\Logger\Logging.hpp" />
+    <ClInclude Include="include\Madeline\WindowManager\Swapchain.hpp" />
     <ClInclude Include="include\Madeline\WindowManager\Window.hpp" />
     <ClInclude Include="include\Madeline\WindowManager\WindowManager.hpp" />
     <ClInclude Include="include\Madeline\WindowManager\WindowStructs.hpp" />
@@ -152,7 +157,7 @@
     <ClInclude Include="include\Skeleton\Skeleton.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Madeline\Logger\Logging.cpp" />
+    <ClCompile Include="src\Madeline\WindowManager\Swapchain.cpp" />
     <ClCompile Include="src\Madeline\WindowManager\Window.cpp" />
     <ClCompile Include="src\Madeline\WindowManager\WindowManager.cpp" />
     <ClCompile Include="src\Madeline\WindowManager\WinElements\Button.cpp" />
