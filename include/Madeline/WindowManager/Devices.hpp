@@ -9,11 +9,11 @@ namespace Madeline
 	{
 	public:
 		Devices(std::shared_ptr<VkObjects> vulkanObjects, const std::vector<const char*> validationLayers);
-		void pickPhysicalDevice(VkSurfaceKHR surface, Swapchain& swapchain);
+		void pickPhysicalDevice(VkSurfaceKHR surface);
 		void createLogicalDevice(VkSurfaceKHR surface);
 
 	private:
-		bool isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface, Swapchain& swapchain);
+		bool isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface);
 		bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 		QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
 		std::string boolToString(bool value) { return value ? "TRUE" : "FALSE"; }

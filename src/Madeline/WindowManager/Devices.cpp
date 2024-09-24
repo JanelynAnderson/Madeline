@@ -7,7 +7,7 @@ namespace Madeline
 	validationLayers{validationLayers}
 	{}
 
-	void Devices::pickPhysicalDevice(VkSurfaceKHR surface, Swapchain& swapchain)
+	void Devices::pickPhysicalDevice(VkSurfaceKHR surface)
 	{
 		uint32_t deviceCount = 0;
 		vkEnumeratePhysicalDevices(vulkanObjects->instance, &deviceCount, nullptr);
@@ -21,7 +21,7 @@ namespace Madeline
 		{
 			VkPhysicalDeviceProperties deviceProperties;
 			vkGetPhysicalDeviceProperties(device, &deviceProperties);
-			if (isDeviceSuitable(device, surface, swapchain) && std::strcmp(deviceProperties.deviceName, "NVIDIA GeForce RTX 4070 Laptop GPU") == 0)
+			if (isDeviceSuitable(device, surface) && std::strcmp(deviceProperties.deviceName, "NVIDIA GeForce RTX 4070 Laptop GPU") == 0)
 			{
 				vulkanObjects->physicalDevice = device;
 				break;
@@ -34,7 +34,7 @@ namespace Madeline
 		}
 	}
 
-	bool Devices::isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface, Swapchain& swapchain)
+	bool Devices::isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface)
 	{
 		QueueFamilyIndices indices = findQueueFamilies(device, surface);
 
@@ -44,7 +44,7 @@ namespace Madeline
 		bool swapchainAdequatePresent = false;
 		if (extentionsSupported)
 		{
-			SwapchainSupportDetails swapChainSupport = swapchain.querySwapchainSupport(device);
+			SwapchainSupportDetails swapChainSupport = Madeline::Swapchain::querySwapchainSupport(device, surface);
 			swapchainAdequateFormat = !swapChainSupport.format.empty();
 			swapchainAdequatePresent = !swapChainSupport.presentModes.empty();
 		}

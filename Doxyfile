@@ -214,7 +214,7 @@ SHORT_NAMES            = NO
 # style comments (thus requiring an explicit @brief command for a brief
 # description.)
 # The default value is: NO.
-
+JAVADOC_BLOCK = YES
 JAVADOC_AUTOBRIEF      = NO
 
 # If the JAVADOC_BANNER tag is set to YES then doxygen will interpret a line

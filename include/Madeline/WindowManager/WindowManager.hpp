@@ -13,9 +13,7 @@ namespace Madeline
 	{
 	public:
 		
-		void initalize_GLFW_Vulkan_Debug();
-
-		void finalizeInitalization();
+		void initalize();
 
 		void cleanup();
 

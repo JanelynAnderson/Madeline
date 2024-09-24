@@ -11,8 +11,17 @@ namespace Madeline
 	vulkanObjects{ vulkanObjects }
 	{
 		initWindow();
-		
 		swapchain = Swapchain{vulkanObjects, windowObjects};
+		createSurface();
+		swapchain.createSwapchain();
+		swapchain.createImageViews();
+		createRenderPass();
+		createGraphicsPipeline();
+		swapchain.createFramebuffers();
+		createCommandPool();
+		createCommandBuffers();
+		createSyncObjects();
+		glfwShowWindow(windowObjects->window);
 	}
 
 	void Window::initWindow()
@@ -273,27 +282,14 @@ namespace Madeline
 		}
 	}
 
-	void Window::windowGraphicsSetup()
+	void Window::initalize()
 	{
-		swapchain.createSwapchain();
-		swapchain.createImageViews();
-		createRenderPass();
-		createGraphicsPipeline();
-		swapchain.createFramebuffers();
-		createCommandPool();
-		createCommandBuffers();
-		createSyncObjects();
+		
 	}
 		
 	void Window::createSurface()
-	{	
-		auto result = glfwCreateWindowSurface(vulkanObjects->instance, windowObjects->window, nullptr, &windowObjects->surface);
-		switch (result)
-		{
-			case VK_SUCCESS: std::cout << "Success" << std::endl; break;
-			default: std::cout << "Other" << std::endl; break;
-		}
-		if (result != VK_SUCCESS)
+	{
+		if (glfwCreateWindowSurface(vulkanObjects->instance, windowObjects->window, nullptr, &windowObjects->surface) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create window surface");
 		}

@@ -2,20 +2,35 @@
 
 namespace Madeline
 {
-	void WindowManager::initalize_GLFW_Vulkan_Debug()
+	void WindowManager::initalize()
 	{
 		initalizeGLFW();
 		createVulkanInstance();
 
 		vkDebugMessenger.setupDebugMessenger();
-	}
 
-	void WindowManager::finalizeInitalization()
-	{
-		applyFunctionToAllWindows(&Window::createSurface);
-		devices.pickPhysicalDevice(windowStack[0].getSurface(), windowStack[0].getSwapchain());
-		devices.createLogicalDevice(windowStack[0].getSurface());
-		applyFunctionToAllWindows(&Window::windowGraphicsSetup);
+		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+		GLFWwindow* compatabilityWindow;
+		compatabilityWindow = glfwCreateWindow(200, 200, "Compatability Window", nullptr, nullptr);
+		if (!compatabilityWindow)
+		{
+			std::runtime_error("Failed to open window to determine device compatability");
+			exit(1);
+		}
+		VkSurfaceKHR compatabilitySurface;
+		auto result = glfwCreateWindowSurface(vulkanObjects->instance, compatabilityWindow, nullptr, &compatabilitySurface);
+		if (result != VK_SUCCESS)
+		{
+			std::runtime_error("Failed to create surface for compatabilty window");
+			exit(1);
+		}
+
+		devices.pickPhysicalDevice(compatabilitySurface);
+		devices.createLogicalDevice(compatabilitySurface);
+
+		vkDestroySurfaceKHR(vulkanObjects->instance, compatabilitySurface, nullptr);
+		glfwDestroyWindow(compatabilityWindow);
 	}
 
 	void WindowManager::cleanup()
@@ -31,6 +46,7 @@ namespace Madeline
 	void WindowManager::addWindow(Madeline::WindowConfig& Config)
 	{
 		windowStack.push_back(Window{Config, vulkanObjects});
+		windowStack.back().initalize();
 	}
 	
 	void WindowManager::allMainLoops()

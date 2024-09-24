@@ -22,7 +22,7 @@ namespace Madeline
 		void cleanupWindow();
 		bool shouldWindowClose();
 		void createSurface();
-		void windowGraphicsSetup();
+		void initalize();
 		
 		VkSurfaceKHR getSurface() { return windowObjects->surface; }
 		GLFWwindow* getWindow() { return windowObjects->window; }

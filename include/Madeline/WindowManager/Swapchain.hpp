@@ -17,7 +17,7 @@ namespace Madeline
 		VkFormat getSwapchainImageFormat() {return swapChainImageFormat;}
 		VkExtent2D getSwapchainExtent() {return swapChainExtent;}
 		VkSwapchainKHR& getVulkanSwapchain() {return swapchain;}
-		SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice device);
+		static SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice device, VkSurfaceKHR& surface);
 		std::vector<VkFramebuffer>& getFramebufferVector() {return swapChainFramebuffers;}
 
 	private:

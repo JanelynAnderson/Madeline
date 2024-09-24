@@ -36,7 +36,7 @@ namespace Madeline
 		createInfo.clipped = VK_TRUE;
 		createInfo.oldSwapchain = nullptr;
 
-		SwapchainSupportDetails swapChainSupport = querySwapchainSupport(vulkanObjects->physicalDevice);
+		SwapchainSupportDetails swapChainSupport = querySwapchainSupport(vulkanObjects->physicalDevice, windowObjects->surface);
 
 		VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.format);
 		VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
@@ -71,28 +71,28 @@ namespace Madeline
 
 	}
 
-	SwapchainSupportDetails Swapchain::querySwapchainSupport(VkPhysicalDevice device)
+	SwapchainSupportDetails Swapchain::querySwapchainSupport(VkPhysicalDevice device, VkSurfaceKHR& surface)
 	{
 		SwapchainSupportDetails details;
 
-		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, windowObjects->surface, &details.capabilities);
+		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
 
 		uint32_t formatCount;
-		vkGetPhysicalDeviceSurfaceFormatsKHR(device, windowObjects->surface, &formatCount, nullptr);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
 
 		if (formatCount != 0)
 		{
 			details.format.resize(formatCount);
-			vkGetPhysicalDeviceSurfaceFormatsKHR(device, windowObjects->surface, &formatCount, details.format.data());
+			vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.format.data());
 		}
 
 		uint32_t presentModeCount;
-		vkGetPhysicalDeviceSurfacePresentModesKHR(device, windowObjects->surface, &presentModeCount, details.presentModes.data());
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
 
 		if (presentModeCount != 0)
 		{
 			details.presentModes.resize(presentModeCount);
-			vkGetPhysicalDeviceSurfacePresentModesKHR(device, windowObjects->surface, &presentModeCount, details.presentModes.data());
+			vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
 		}
 		return details;
 	}
